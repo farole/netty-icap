@@ -20,6 +20,8 @@ import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.jboss.netty.logging.InternalLogger;
+import org.jboss.netty.logging.InternalLoggerFactory;
 
 /**
  * Decoder State that reads http response initial and headers.
@@ -30,6 +32,8 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
  * @see StateEnum
  */
 public class ReadHttpResponseInitalAndHeadersState extends State<Object> {
+	
+	private static final InternalLogger LOG = InternalLoggerFactory.getInstance(ReadHttpResponseInitalAndHeadersState.class);
 
 	public ReadHttpResponseInitalAndHeadersState(String name) {
 		super(name);
@@ -53,7 +57,12 @@ public class ReadHttpResponseInitalAndHeadersState extends State<Object> {
 		icapMessageDecoder.message.setHttpResponse(message);
 		List<String[]> headerList = IcapDecoderUtil.readHeaders(buffer,icapMessageDecoder.maxHttpHeaderSize);
 		for(String[] header : headerList) {
-			message.addHeader(header[0],header[1]);
+			try {
+				message.addHeader(header[0],header[1]);
+			}
+			catch(IllegalArgumentException e) {
+				LOG.warn("Skip invalid header: " + header[0]);
+			}
 		}
 		Encapsulated encapsulated = icapMessageDecoder.message.getEncapsulatedHeader();
 		encapsulated.setEntryAsProcessed(encapsulated.getNextEntry());
